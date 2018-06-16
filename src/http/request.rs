@@ -1,20 +1,8 @@
-#[allow(dead_code)]
-    use std::net::TcpStream;
-    use std::collections::HashMap;
-    use std::io::prelude::*;
+use std::net::TcpStream;
+use std::collections::HashMap;
+use std::io::prelude::*;
+use super::*;
 
-   #[allow(dead_code)]
-   pub enum Method {
-        GET,
-        HEAD,
-        POST,
-        PUT,
-        DELETE,
-        TRACE,
-        OPTIONS,
-        CONNECT,
-        PATCH
-    }
    
 #[allow(dead_code)]
 pub struct Fields {
@@ -29,16 +17,15 @@ impl Fields {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
         
-        // println!("\n\n{}\n", String::from_utf8_lossy(&buffer));
         let mut start = 0;
         let mut last_end = false;
         let mut iter = buffer.iter().enumerate();
-        let mut map = HashMap::new();//<String, String>;
+        let mut map = HashMap::new();
         let mut last_index = 0;
         let mut first_line = true;
         while let Some((i, item)) = iter.next() {
             //Check for CRLF
-            if *item == 0xD {//&& buffer[i + 1] == 0xA
+            if *item == 0xD {
                 if let Some((j, item2)) = iter.next() {
                     if *item2 == 0xA {
                         if last_end {
@@ -55,9 +42,7 @@ impl Fields {
                         } else {
                             Fields::add_line(line, &mut map);
                         }
-                        
                         start = j + 1;
-                        last_index = j;
                     }
                 }
             }else {
@@ -80,13 +65,13 @@ impl Fields {
         let mut method: Option<Method> = None;
         let mut target: Option<String> = None;
         if let Some(mut start) = space {
-            start = start + 1;
             method = Fields::match_method(&line[..start]);
+            start = start + 1;
             let sub = &line[start..];
             
             let space2 = sub.find(' ');
 
-            if let Some(end) = space {
+            if let Some(end) = space2 {
                 target = Some(String::from(&sub[..end])); 
             }
         }
@@ -115,6 +100,5 @@ impl Fields {
             let value = String::from(&line[loc + 1..]);
             map.insert(key, value);
         }
-        print!("{}\n", line);
     }
 }

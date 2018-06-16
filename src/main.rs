@@ -1,8 +1,8 @@
 use std::net::{TcpListener, TcpStream};
 
-mod request;
+mod http;
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8002").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
     let mut count = 0;
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -14,11 +14,6 @@ fn main() {
     }
 }
 
-fn handle_stream(mut stream: TcpStream) {
-    // let mut buffer = [0; 512];
-
-    // stream.read(&mut buffer).unwrap();
-    // println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
-    // let req = request::Request::new();
-    let req = request::Fields::new(stream);
+fn handle_stream(stream: TcpStream) {
+    let req = http::request::Fields::new(stream);
 }
