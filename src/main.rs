@@ -1,4 +1,5 @@
 use std::net::{TcpListener, TcpStream};
+use std::io::Write;
 
 mod http;
 fn main() {
@@ -14,6 +15,10 @@ fn main() {
     }
 }
 
-fn handle_stream(stream: TcpStream) {
-    let req = http::request::Fields::new(stream);
+fn handle_stream(mut stream: TcpStream) {
+    let req = http::request::Fields::new(&mut stream);
+    let mut res = http::response::Header::new();
+    let ren = res.render();
+    stream.write(&ren.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }

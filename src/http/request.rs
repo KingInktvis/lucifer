@@ -13,7 +13,7 @@ pub struct Fields {
 
 impl Fields {
 
-    pub fn new(mut stream: TcpStream) -> Fields {
+    pub fn new(stream: &mut TcpStream) -> Fields {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
         
@@ -65,7 +65,7 @@ impl Fields {
         let mut method: Option<Method> = None;
         let mut target: Option<String> = None;
         if let Some(mut start) = space {
-            method = Fields::match_method(&line[..start]);
+            method = match_method(&line[..start]);
             start = start + 1;
             let sub = &line[start..];
             
@@ -78,20 +78,7 @@ impl Fields {
         (method, target)
     }
 
-    fn match_method(verb: &str) -> Option<Method> {
-        match verb {
-            "GET" => Some(Method::GET),
-            "POST" => Some(Method::POST),
-            "PUT" => Some(Method::PUT),
-            "PATCH" => Some(Method::PATCH),
-            "DELETE" => Some(Method::DELETE),
-            "HEAD" => Some(Method::HEAD),
-            "TRACE" => Some(Method::TRACE),
-            "OPTIONS" => Some(Method::OPTIONS),
-            "CONNECT" => Some(Method::CONNECT),
-            _ => None
-        }
-    }
+
 
     fn add_line(line: String, map: &mut HashMap<String, String>)  {
         let colon = line.find(':');
@@ -100,5 +87,20 @@ impl Fields {
             let value = String::from(&line[loc + 1..]);
             map.insert(key, value);
         }
+    }
+}
+
+pub fn match_method(verb: &str) -> Option<Method> {
+    match verb {
+        "GET" => Some(Method::GET),
+        "POST" => Some(Method::POST),
+        "PUT" => Some(Method::PUT),
+        "PATCH" => Some(Method::PATCH),
+        "DELETE" => Some(Method::DELETE),
+        "HEAD" => Some(Method::HEAD),
+        "TRACE" => Some(Method::TRACE),
+        "OPTIONS" => Some(Method::OPTIONS),
+        "CONNECT" => Some(Method::CONNECT),
+        _ => None
     }
 }
