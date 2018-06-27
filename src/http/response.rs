@@ -1,14 +1,28 @@
-pub struct Header {
+pub struct Values {
     status: u32,
-    fields: Vec<String>
+    fields: Vec<String>,
+    body: Vec<u8>
 }
 #[allow(dead_code)]
-impl Header {
-    pub fn new() -> Header {
-        Header {
+impl Values {
+    pub fn new() -> Values {
+        Values {
             status: 200,
-            fields: Vec::new()
+            fields: Vec::new(),
+            body: Vec::new()
         }
+    }
+
+    pub fn send_message(&mut self, message: &str) {
+        let mut bytes = Vec::new();
+        for b in message.as_bytes().iter() {
+            bytes.push(*b);
+        }
+        self.body = bytes;
+    }
+
+    pub fn add_header(&mut self, header: String) {
+        self.fields.push(header);
     }
 
     pub fn render(&self) -> String {
@@ -25,7 +39,36 @@ impl Header {
             header.push_str("\r\n");
         }
         header.push_str("\r\n");
+
         header
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut res = Vec::new();
+        push_str(&mut res, "HTTP/1.1 ");
+        push_str(&mut res, &self.status.to_string());
+        push_str(&mut res, " ");
+        push_str(&mut res, &map_status_message(self.status));
+        push_str(&mut res, "\r\n");
+
+        for line in self.fields.iter() {
+            push_str(&mut res, &line);
+            push_str(&mut res, "\r\n");
+        }
+
+        for i in self.body.iter() {
+            res.push(*i);
+        }
+
+        res
+    }
+
+    
+}
+
+fn push_str(vec: &mut Vec<u8>, string: &str) {
+    for i in string.as_bytes().iter() {
+        vec.push(*i);
     }
 }
 

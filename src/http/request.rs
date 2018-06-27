@@ -5,18 +5,20 @@ use super::*;
 
    
 #[allow(dead_code)]
-pub struct Fields {
+pub struct Values {
     method: Method,
     target: String,
-    options: HashMap<String, String>
+    options: HashMap<String, String>,
+    body: Vec<u8>
 }
 
-impl Fields {
+impl Values {
 
-    pub fn new(stream: &mut TcpStream) -> Fields {
+    pub fn new(stream: &mut TcpStream) -> Option<Values> {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
-        
+        let mut method = Method::GET;
+        let mut target = String::new();
         let mut start = 0;
         let mut last_end = false;
         let mut iter = buffer.iter().enumerate();
@@ -37,10 +39,20 @@ impl Fields {
                         let s = &buffer[start..i];
                         let line = String::from(String::from_utf8_lossy(s));
                         if first_line {
-                            Fields::first_line(line);
+                            let tmp = Values::first_line(line);
+                            if let Some(x) = tmp.0 {
+                                method = x;
+                            } else {
+                                return None;
+                            }
+                            if let Some(x) = tmp.1 {
+                                target = x;
+                            } else {
+                                return None;
+                            }
                             first_line = false;
                         } else {
-                            Fields::add_line(line, &mut map);
+                            Values::add_line(line, &mut map);
                         }
                         start = j + 1;
                     }
@@ -49,15 +61,23 @@ impl Fields {
                 last_end = false;
             }
         }
-        Fields {
-            method: Method::GET,
-            target: String::from("/"),
-            options: map
-        }
+        let body = Values::extract_body(&buffer[last_index+1..]);
+
+        Some(Values {
+            method: method,
+            target: target,
+            options: map,
+            body: to_vec(body)
+        })
     }
 
-    fn method(&self) -> &Method {
-        &self.method
+    fn extract_body(buffer: &[u8]) -> &[u8] {
+        for (i, byte) in buffer.iter().enumerate().rev() {
+            if *byte != 0x0 {
+                return &buffer[..i+1];;
+            }
+        }
+        &buffer[..0]
     }
 
     fn first_line(line: String) -> (Option<Method>, Option<String>){
@@ -78,8 +98,6 @@ impl Fields {
         (method, target)
     }
 
-
-
     fn add_line(line: String, map: &mut HashMap<String, String>)  {
         let colon = line.find(':');
         if let Some(loc) = colon {
@@ -88,6 +106,18 @@ impl Fields {
             map.insert(key, value);
         }
     }
+
+    pub fn body(&self) -> &Vec<u8> {
+        &self.body
+    }
+}
+
+fn to_vec(arr: &[u8]) -> Vec<u8> {
+    let mut v = Vec::new();
+    for i in arr.iter() {
+        v.push(*i);
+    }
+    v
 }
 
 pub fn match_method(verb: &str) -> Option<Method> {
