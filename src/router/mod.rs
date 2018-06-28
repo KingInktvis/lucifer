@@ -26,9 +26,6 @@ impl Paths {
         if route.len() > 0 {
             if let Some(c) = route[0].chars().next() {
                 if c == ':' {
-                    // self.add_wildcard_route(route[0]);
-                    // let i = self.wildcard.len() - 1;
-                    // self.wildcard[i].add_route(&route[1..]);
                     Paths::add_route_to_vec(route, &mut self.wildcard);
                 }else {
                     Paths::add_route_to_vec(route, &mut self.sub);
@@ -83,6 +80,26 @@ impl Paths {
         }
         None
     }
+
+    fn router(&self, path: &str) -> Option<&String> {
+        let v = Paths::route_vec(path);
+        self.vec_router(&v[1..])
+    }
+
+    fn vec_router(&self, route: &[&str]) -> Option<&String> {
+        if route.len() == 0 {
+            if let Some(f) = &self.function {
+                return Some(&f);
+            }else{
+                return None;
+            }
+        }
+        if let Some(p) = self.find_sub(route[0]) {
+            return p.vec_router(&route[1..]);
+        }else{
+            return None;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -96,5 +113,16 @@ mod tests {
         assert_eq!(v[0], "");
         assert_eq!(v[1], "some");
         assert_eq!(v[2], "thing");
+    }
+
+    #[test]
+    fn routes() {
+        let mut router = Paths::new_root();
+        router.new_route("/some/thing");
+        let test = router.find_sub("some");
+        match test {
+            Some(route) => {},
+            None => panic!("Route not found"),
+        }
     }
 } 
