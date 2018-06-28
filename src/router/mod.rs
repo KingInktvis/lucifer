@@ -17,28 +17,30 @@ impl Paths {
         }
     }
 
-    fn new_route(&mut self, route: &str) {
+    fn new_route(&mut self, route: &str, func: String) {
         let split = Paths::route_vec(route);
-        self.add_route(&split[1..]);
+        self.add_route(&split[1..], func);
     }
 
-    fn add_route(&mut self, route: &[&str]) {
+    fn add_route(&mut self, route: &[&str], func: String) {
         if route.len() > 0 {
             if let Some(c) = route[0].chars().next() {
                 if c == ':' {
-                    Paths::add_route_to_vec(route, &mut self.wildcard);
+                    Paths::add_route_to_vec(route, &mut self.wildcard, func);
                 }else {
-                    Paths::add_route_to_vec(route, &mut self.sub);
+                    Paths::add_route_to_vec(route, &mut self.sub, func);
                 }
             }
+        }else{
+            self.function = Some(func);
         }
     }
 
-    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>) {   
+    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: String) {   
         //Search for existing route.
         for i in store.iter_mut() {
             if i.name == route[0] {
-                i.add_route(&route[1..]);
+                i.add_route(&route[1..], func);
                 return;
             }
         }
@@ -51,7 +53,7 @@ impl Paths {
         });
         let i = store.len() - 1;
         let item = &mut store[i];
-        item.add_route(&route[1..]);
+        item.add_route(&route[1..], func);
     }
 
     /// Split a given route str at the '/' into a vector of the different parts 
@@ -118,11 +120,16 @@ mod tests {
     #[test]
     fn routes() {
         let mut router = Paths::new_root();
-        router.new_route("/some/thing");
+        router.new_route("/some/thing", String::from("test"));
         let test = router.find_sub("some");
         match test {
             Some(route) => {},
             None => panic!("Route not found"),
+        }
+        let test = router.router("/some/thing");
+        match test {
+            Some(value) => {},
+            None => panic!("Router fn does not return Some.")
         }
     }
 } 
