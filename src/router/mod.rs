@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-struct Paths {
+pub struct Paths {
     name: String,
     function: Option<String>,
     sub: Vec<Paths>,
@@ -8,7 +8,7 @@ struct Paths {
 
 #[allow(dead_code)]
 impl Paths {
-    fn new_root() -> Paths {
+    pub fn new_root() -> Paths {
         Paths {
             name: String::from(""),
             function: None,
@@ -17,7 +17,7 @@ impl Paths {
         }
     }
 
-    fn new_route(&mut self, route: &str, func: String) {
+    pub fn new_route(&mut self, route: &str, func: String) {
         let split = Paths::route_vec(route);
         self.add_route(&split[1..], func);
     }

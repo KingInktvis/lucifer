@@ -4,24 +4,46 @@ use std::io::Write;
 mod http;
 mod router;
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
-    let mut count = 0;
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        handle_stream(stream);
-        count += 1;
-        if count > 0 {
-            break;
-        }
-    }
+    let mut server = Server::new();
+    server.listen("127.0.0.1:8000");
 }
 
-fn handle_stream(mut stream: TcpStream) {
-    let req = http::request::Values::new(&mut stream);
-    
-    let mut res = http::response::Values::new();
-    if let Some(val) = req {
-        res.send_message(" <!DOCTYPE html>
+
+use router::Paths;
+struct Server {
+    routes: Paths
+}
+
+impl Server {
+    fn new() -> Server {
+        Server {
+            routes: Paths::new_root()
+        }
+    }
+
+    fn add_route(&mut self, route: &str, function: String) {
+        self.routes.new_route(route, function);
+    }
+
+    fn listen(&self, address: &str) {
+        let listener = TcpListener::bind(address).unwrap();
+        let mut count = 0;
+        for stream in listener.incoming() {
+            let stream = stream.unwrap();
+            self.handle_stream(stream);
+            count += 1;
+            if count > 0 {
+                break;
+            }
+        }
+    }
+
+    fn handle_stream(&self, mut stream: TcpStream) {
+        let req = http::request::Values::new(&mut stream);
+
+        let mut res = http::response::Values::new();
+        if let Some(val) = req {
+            res.send_message(" <!DOCTYPE html>
 <html>
 <head>
 <title>Page Title</title>
@@ -33,12 +55,13 @@ fn handle_stream(mut stream: TcpStream) {
 
 </body>
 </html> ");
-        res.add_header(String::from("Content-Type: text/html"));
-    }else {
-        print!("FUCK\n");
+            res.add_header(String::from("Content-Type: text/html"));
+        }else {
+            print!("FUCK\n");
+        }
+
+        // let ren = res.render();
+        stream.write(&res.to_bytes()[..]).unwrap();
+        stream.flush().unwrap();
     }
-   
-    // let ren = res.render();
-    stream.write(&res.to_bytes()[..]).unwrap();
-    stream.flush().unwrap();
 }
