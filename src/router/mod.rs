@@ -36,7 +36,7 @@ impl Paths {
         }
     }
 
-    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: String) {   
+    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: String) {
         //Search for existing route.
         for i in store.iter_mut() {
             if i.name == route[0] {
@@ -99,8 +99,19 @@ impl Paths {
         if let Some(p) = self.find_sub(route[0]) {
             return p.vec_router(&route[1..]);
         }else{
-            return None;
+            return self.route_wildcard(route);
         }
+    }
+
+    fn route_wildcard(&self, path: &[&str]) -> Option<&String> {
+        for i in self.wildcard.iter() {
+            let res = i.vec_router(&path[1..]);
+            match res {
+                Some(func) => return Some(func),
+                None => {}
+            }
+        }
+        None
     }
 }
 
@@ -120,6 +131,7 @@ mod tests {
     #[test]
     fn routes() {
         let mut router = Paths::new_root();
+        router.new_route("/other/object", String::from("test2"));
         router.new_route("/some/thing", String::from("test"));
         let test = router.find_sub("some");
         match test {
@@ -128,8 +140,25 @@ mod tests {
         }
         let test = router.router("/some/thing");
         match test {
-            Some(value) => {},
+            Some(value) => {if value != "test" {panic!("wrong return value")}},
+            None => panic!("Router fn does not return Some.")
+        }
+        let test = router.router("/other/object");
+        match test {
+            Some(value) => {if value != "test2" {panic!("wrong return value")}},
             None => panic!("Router fn does not return Some.")
         }
     }
-} 
+
+    #[test]
+    fn wildcard_routes() {
+        let mut router = Paths::new_root();
+        router.new_route("/:wildcard/test", String::from("wc"));
+        router.new_route("/test/:wildcard/test2", String::from("wc2"));
+        let test = router.router("/test/random/test2");
+        match test {
+            Some(value) => {},
+            None => panic!("Router fn does not return Some with wildcard.")
+        }
+    }
+}
