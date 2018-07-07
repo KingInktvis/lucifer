@@ -1,6 +1,4 @@
-use std::net::TcpStream;
 use std::collections::HashMap;
-use std::io::prelude::*;
 use super::*;
 
    
@@ -14,9 +12,7 @@ pub struct Values {
 
 impl Values {
 
-    pub fn new(stream: &mut TcpStream) -> Option<Values> {
-        let mut buffer = [0; 512];
-        stream.read(&mut buffer).unwrap();
+    pub fn new(buffer: &[u8]) -> Option<Values> {
         let mut method = Method::GET;
         let mut target = String::new();
         let mut start = 0;

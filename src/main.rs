@@ -1,5 +1,6 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::Write;
+use std::io::prelude::*;
 
 mod http;
 mod router;
@@ -39,7 +40,9 @@ impl Server {
     }
 
     fn handle_stream(&self, mut stream: TcpStream) {
-        let req = http::request::Values::new(&mut stream);
+        let mut buffer = [0; 512];
+        stream.read(&mut buffer).unwrap();
+        let req = http::request::Values::new(&mut buffer);
 
         let mut res = http::response::Values::new();
         if let Some(val) = req {
