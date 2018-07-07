@@ -83,7 +83,7 @@ impl Paths {
         None
     }
 
-    fn router(&self, path: &str) -> Option<&String> {
+    pub fn router(&self, path: &str) -> Option<&String> {
         let v = Paths::route_vec(path);
         self.vec_router(&v[1..])
     }
@@ -135,7 +135,7 @@ mod tests {
         router.new_route("/some/thing", String::from("test"));
         let test = router.find_sub("some");
         match test {
-            Some(route) => {},
+            Some(_route) => {},
             None => panic!("Route not found"),
         }
         let test = router.router("/some/thing");
@@ -157,7 +157,7 @@ mod tests {
         router.new_route("/test/:wildcard/test2", String::from("wc2"));
         let test = router.router("/test/random/test2");
         match test {
-            Some(value) => {},
+            Some(_value) => {},
             None => panic!("Router fn does not return Some with wildcard.")
         }
     }

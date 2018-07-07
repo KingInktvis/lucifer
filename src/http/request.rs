@@ -10,6 +10,7 @@ pub struct Values {
     body: Vec<u8>
 }
 
+#[allow(dead_code)]
 impl Values {
 
     pub fn new(buffer: &[u8]) -> Option<Values> {
@@ -60,8 +61,8 @@ impl Values {
         let body = Values::extract_body(&buffer[last_index+1..]);
 
         Some(Values {
-            method: method,
-            target: target,
+            method,
+            target,
             options: map,
             body: to_vec(body)
         })
@@ -103,8 +104,16 @@ impl Values {
         }
     }
 
-    pub fn body(&self) -> &Vec<u8> {
+    pub fn get_body(&self) -> &Vec<u8> {
         &self.body
+    }
+
+    pub fn get_method(&self) -> Method {
+        self.method.clone()
+    }
+
+    pub fn get_route(&self) -> &str {
+        &self.target
     }
 }
 
