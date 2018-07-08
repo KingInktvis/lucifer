@@ -67,7 +67,7 @@ impl Paths {
                 list.push(this);
             }
         }
-        if route.len() >= start {
+        if route.len() > start {
             let rest = &route[start..];
             list.push(rest);
         }
@@ -126,6 +126,12 @@ mod tests {
         assert_eq!(v[0], "");
         assert_eq!(v[1], "some");
         assert_eq!(v[2], "thing");
+
+
+        let route = "/";
+        let v = Paths::route_vec(route);
+        assert_eq!(v.len(), 1);
+        assert_eq!(v[0], "");
     }
 
     #[test]
@@ -133,6 +139,7 @@ mod tests {
         let mut router = Paths::new_root();
         router.new_route("/other/object", String::from("test2"));
         router.new_route("/some/thing", String::from("test"));
+        router.new_route("/", String::from("empty"));
         let test = router.find_sub("some");
         match test {
             Some(_route) => {},
@@ -147,6 +154,12 @@ mod tests {
         match test {
             Some(value) => {if value != "test2" {panic!("wrong return value")}},
             None => panic!("Router fn does not return Some.")
+        }
+
+        let test = router.router("/");
+        match test {
+            Some(value) => {if value != "empty" {panic!("wrong return value")}},
+            None => panic!("Router fn does not return Some at /.")
         }
     }
 
