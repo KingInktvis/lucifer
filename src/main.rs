@@ -7,7 +7,25 @@ mod http;
 mod router;
 fn main() {
     let mut server = Server::new();
+    server.add_route(Method::GET, "/", root);
     server.listen("127.0.0.1:8000");
+}
+
+fn root(_req: Request) -> Response {
+    let mut res = Response::new();
+    res.send_message(" <!DOCTYPE html>
+<html>
+<head>
+<title>Page Title</title>
+</head>
+<body>
+
+<h1>This is a Heading</h1>
+<p>This is a paragraph.</p>
+
+</body>
+</html> ");
+    res
 }
 
 
@@ -95,28 +113,25 @@ impl Server {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
         let req = Request::new(&mut buffer);
-        let mut res = Response::new();
+        let res;// = Response::new();
         if let Some(val) = req {
             let handle = self.get_route(val.get_method(),
                                         val.get_route());
 
-            res.send_message("
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Page Title</title>
-            </head>
-            <body>
-                <h1>This is a Heading</h1>
-                <p>This is a paragraph.</p>
-            </body>
-            </html>");
-            res.add_header(String::from("Content-Type: text/html"));
+            res = match handle {
+                Some(func) => func(val),
+                None => {
+                    let mut tmp = Response::new();
+                    tmp.set_status(404);
+                    tmp
+                }
+            }
         }else {
-            print!("FUCK\n");
+            let mut tmp = Response::new();
+            tmp.set_status(404);
+            res = tmp;
         }
 
-        // let ren = res.render();
         stream.write(&res.to_bytes()[..]).unwrap();
         stream.flush().unwrap();
     }

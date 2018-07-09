@@ -18,6 +18,11 @@ impl Response {
         self.body = bytes;
     }
 
+    pub fn set_status(&mut self, new: u32) -> &mut Response {
+        self.status = new;
+        self
+    }
+
     pub fn add_header(&mut self, header: String) {
         self.fields.push(header);
     }
