@@ -1,19 +1,11 @@
 use std::collections::HashMap;
 use super::*;
 
-   
-#[allow(dead_code)]
-pub struct Values {
-    method: Method,
-    target: String,
-    options: HashMap<String, String>,
-    body: Vec<u8>
-}
 
 #[allow(dead_code)]
-impl Values {
+impl Request {
 
-    pub fn new(buffer: &[u8]) -> Option<Values> {
+    pub fn new(buffer: &[u8]) -> Option<Request> {
         let mut method = Method::GET;
         let mut target = String::new();
         let mut start = 0;
@@ -36,7 +28,7 @@ impl Values {
                         let s = &buffer[start..i];
                         let line = String::from(String::from_utf8_lossy(s));
                         if first_line {
-                            let tmp = Values::first_line(line);
+                            let tmp = Request::first_line(line);
                             if let Some(x) = tmp.0 {
                                 method = x;
                             } else {
@@ -49,7 +41,7 @@ impl Values {
                             }
                             first_line = false;
                         } else {
-                            Values::add_line(line, &mut map);
+                            Request::add_line(line, &mut map);
                         }
                         start = j + 1;
                     }
@@ -58,9 +50,9 @@ impl Values {
                 last_end = false;
             }
         }
-        let body = Values::extract_body(&buffer[last_index+1..]);
+        let body = Request::extract_body(&buffer[last_index+1..]);
 
-        Some(Values {
+        Some(Request {
             method,
             target,
             options: map,

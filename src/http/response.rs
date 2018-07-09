@@ -1,12 +1,9 @@
-pub struct Values {
-    status: u32,
-    fields: Vec<String>,
-    body: Vec<u8>
-}
+use super::Response;
+
 #[allow(dead_code)]
-impl Values {
-    pub fn new() -> Values {
-        Values {
+impl Response {
+    pub fn new() -> Response {
+        Response {
             status: 200,
             fields: Vec::new(),
             body: Vec::new()

@@ -42,11 +42,11 @@ impl Server {
         }
     }
 
-    fn add_route(&mut self, method: http::Method, route: &str, function: fn (request::Values) -> response::Values) {
+    fn add_route(&mut self, method: Method, route: &str, function: fn (Request) -> Response) {
         self.method_match_mut(method).new_route(route, function);
     }
 
-    fn get_route(&self, method: http::Method, route: &str) -> Option<fn (request::Values) -> response::Values> {
+    fn get_route(&self, method: Method, route: &str) -> Option<fn (Request) -> Response> {
         self.method_match(method).router(route)
     }
 
@@ -94,8 +94,8 @@ impl Server {
     fn handle_stream(&self, mut stream: TcpStream) {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
-        let req = http::request::Values::new(&mut buffer);
-        let mut res = http::response::Values::new();
+        let req = Request::new(&mut buffer);
+        let mut res = Response::new();
         if let Some(val) = req {
             let handle = self.get_route(val.get_method(),
                                         val.get_route());
@@ -136,7 +136,7 @@ mod tests {
         }
     }
 
-    fn test (req: request::Values) -> response::Values {
-        response::Values::new()
+    fn test (_req: Request) -> Response {
+        Response::new()
     }
 }

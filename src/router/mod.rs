@@ -1,10 +1,10 @@
-use http::request;
-use http::response;
+use http::Request;
+use http::Response;
 
 #[allow(dead_code)]
 pub struct Paths {
     name: String,
-    function: Option<fn (request::Values) -> response::Values>,
+    function: Option<fn (Request) -> Response>,
     sub: Vec<Paths>,
     wildcard: Vec<Paths>
 }
@@ -20,12 +20,12 @@ impl Paths {
         }
     }
 
-    pub fn new_route(&mut self, route: &str, func: fn (request::Values) -> response::Values) {
+    pub fn new_route(&mut self, route: &str, func: fn (Request) -> Response) {
         let split = Paths::route_vec(route);
         self.add_route(&split[1..], func);
     }
 
-    fn add_route(&mut self, route: &[&str], func: fn (request::Values) -> response::Values) {
+    fn add_route(&mut self, route: &[&str], func: fn (Request) -> Response) {
         if route.len() > 0 {
             if let Some(c) = route[0].chars().next() {
                 if c == ':' {
@@ -39,7 +39,7 @@ impl Paths {
         }
     }
 
-    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: fn (request::Values) -> response::Values) {
+    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: fn (Request) -> Response) {
         //Search for existing route.
         for i in store.iter_mut() {
             if i.name == route[0] {
@@ -86,12 +86,12 @@ impl Paths {
         None
     }
 
-    pub fn router(&self, path: &str) -> Option<fn (request::Values) -> response::Values> {
+    pub fn router(&self, path: &str) -> Option<fn (Request) -> Response> {
         let v = Paths::route_vec(path);
         self.vec_router(&v[1..])
     }
 
-    fn vec_router(&self, route: &[&str]) -> Option<fn (request::Values) -> response::Values> {
+    fn vec_router(&self, route: &[&str]) -> Option<fn (Request) -> Response> {
         if route.len() == 0 {
             if let Some(f) = &self.function {
                 return Some(*f);
@@ -106,7 +106,7 @@ impl Paths {
         }
     }
 
-    fn route_wildcard(&self, path: &[&str]) -> Option<fn (request::Values) -> response::Values> {
+    fn route_wildcard(&self, path: &[&str]) -> Option<fn (Request) -> Response> {
         for i in self.wildcard.iter() {
             let res = i.vec_router(&path[1..]);
             match res {
@@ -182,14 +182,14 @@ mod tests {
         }
     }
 
-    fn empty(req: request::Values) -> response::Values {
-        let mut res = response::Values::new();
+    fn empty(_req: Request) -> Response {
+        let mut res = Response::new();
         res.send_message("empty");
         res
     }
 
-    fn test1(req: request::Values) -> response::Values {
-        let mut res = response::Values::new();
+    fn test1(_req: Request) -> Response {
+        let mut res = Response::new();
         res.send_message("test1");
         res
     }
