@@ -1,7 +1,10 @@
+use http::request;
+use http::response;
+
 #[allow(dead_code)]
 pub struct Paths {
     name: String,
-    function: Option<String>,
+    function: Option<fn (request::Values) -> response::Values>,
     sub: Vec<Paths>,
     wildcard: Vec<Paths>
 }
@@ -17,12 +20,12 @@ impl Paths {
         }
     }
 
-    pub fn new_route(&mut self, route: &str, func: String) {
+    pub fn new_route(&mut self, route: &str, func: fn (request::Values) -> response::Values) {
         let split = Paths::route_vec(route);
         self.add_route(&split[1..], func);
     }
 
-    fn add_route(&mut self, route: &[&str], func: String) {
+    fn add_route(&mut self, route: &[&str], func: fn (request::Values) -> response::Values) {
         if route.len() > 0 {
             if let Some(c) = route[0].chars().next() {
                 if c == ':' {
@@ -36,7 +39,7 @@ impl Paths {
         }
     }
 
-    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: String) {
+    fn add_route_to_vec(route: &[&str], store: &mut Vec<Paths>, func: fn (request::Values) -> response::Values) {
         //Search for existing route.
         for i in store.iter_mut() {
             if i.name == route[0] {
@@ -83,15 +86,15 @@ impl Paths {
         None
     }
 
-    pub fn router(&self, path: &str) -> Option<&String> {
+    pub fn router(&self, path: &str) -> Option<fn (request::Values) -> response::Values> {
         let v = Paths::route_vec(path);
         self.vec_router(&v[1..])
     }
 
-    fn vec_router(&self, route: &[&str]) -> Option<&String> {
+    fn vec_router(&self, route: &[&str]) -> Option<fn (request::Values) -> response::Values> {
         if route.len() == 0 {
             if let Some(f) = &self.function {
-                return Some(&f);
+                return Some(*f);
             }else{
                 return None;
             }
@@ -103,7 +106,7 @@ impl Paths {
         }
     }
 
-    fn route_wildcard(&self, path: &[&str]) -> Option<&String> {
+    fn route_wildcard(&self, path: &[&str]) -> Option<fn (request::Values) -> response::Values> {
         for i in self.wildcard.iter() {
             let res = i.vec_router(&path[1..]);
             match res {
@@ -137,9 +140,9 @@ mod tests {
     #[test]
     fn routes() {
         let mut router = Paths::new_root();
-        router.new_route("/other/object", String::from("test2"));
-        router.new_route("/some/thing", String::from("test"));
-        router.new_route("/", String::from("empty"));
+        router.new_route("/other/object", empty);
+        router.new_route("/some/thing", test1);
+        router.new_route("/", empty);
         let test = router.find_sub("some");
         match test {
             Some(_route) => {},
@@ -147,18 +150,22 @@ mod tests {
         }
         let test = router.router("/some/thing");
         match test {
-            Some(value) => {if value != "test" {panic!("wrong return value")}},
+            Some(value) => {if value != test1 {panic!("wrong return value")}},
             None => panic!("Router fn does not return Some.")
+        }
+        match test {
+            Some(value) => {if value != test1 {panic!("wrong return value 2nd visit")}},
+            None => panic!("Router fn does not return Some at 2nd visit.")
         }
         let test = router.router("/other/object");
         match test {
-            Some(value) => {if value != "test2" {panic!("wrong return value")}},
+            Some(value) => {if value != empty {panic!("wrong return value")}},
             None => panic!("Router fn does not return Some.")
         }
 
         let test = router.router("/");
         match test {
-            Some(value) => {if value != "empty" {panic!("wrong return value")}},
+            Some(value) => {if value != empty {panic!("wrong return value")}},
             None => panic!("Router fn does not return Some at /.")
         }
     }
@@ -166,12 +173,24 @@ mod tests {
     #[test]
     fn wildcard_routes() {
         let mut router = Paths::new_root();
-        router.new_route("/:wildcard/test", String::from("wc"));
-        router.new_route("/test/:wildcard/test2", String::from("wc2"));
+        router.new_route("/:wildcard/test", empty);
+        router.new_route("/test/:wildcard/test2", empty);
         let test = router.router("/test/random/test2");
         match test {
             Some(_value) => {},
             None => panic!("Router fn does not return Some with wildcard.")
         }
+    }
+
+    fn empty(req: request::Values) -> response::Values {
+        let mut res = response::Values::new();
+        res.send_message("empty");
+        res
+    }
+
+    fn test1(req: request::Values) -> response::Values {
+        let mut res = response::Values::new();
+        res.send_message("test1");
+        res
     }
 }

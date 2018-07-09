@@ -1,7 +1,7 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::Write;
 use std::io::prelude::*;
-use http::Method;
+use http::*;
 
 mod http;
 mod router;
@@ -42,11 +42,11 @@ impl Server {
         }
     }
 
-    fn add_route(&mut self, method: http::Method, route: &str, function: String) {
+    fn add_route(&mut self, method: http::Method, route: &str, function: fn (request::Values) -> response::Values) {
         self.method_match_mut(method).new_route(route, function);
     }
 
-    fn get_route(&self, method: http::Method, route: &str) -> Option<&String> {
+    fn get_route(&self, method: http::Method, route: &str) -> Option<fn (request::Values) -> response::Values> {
         self.method_match(method).router(route)
     }
 
@@ -129,10 +129,14 @@ mod tests {
     #[test]
     fn method_routes() {
         let mut server = Server::new();
-        server.add_route(Method::GET, "/some", String::from("ok"));
+        server.add_route(Method::GET, "/some", test);
         match server.get_route(Method::GET, "/some") {
             Some(_x) => {},
             None => panic!("Server routing error")
         }
+    }
+
+    fn test (req: request::Values) -> response::Values {
+        response::Values::new()
     }
 }
