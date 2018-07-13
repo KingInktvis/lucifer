@@ -52,3 +52,22 @@ impl RouteHandler {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn method_routes() {
+        let mut routes = RouteHandler::new();
+        routes.add_route(Method::GET, "/some", test);
+        match routes.get_route(Method::GET, "/some") {
+            Some(_) => {},
+            None => panic!("Server routing error")
+        }
+    }
+
+    fn test (_req: Request) -> Response {
+        Response::new()
+    }
+}

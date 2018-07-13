@@ -8,10 +8,11 @@ use std::io::prelude::*;
 use std::sync::Arc;
 
 pub struct Manager {
-    amount: u32,
+    amount: usize,
     workers: Vec<thread::JoinHandle<()>>,
     tx: Vec<mpsc::Sender<TcpStream>>,
-    share: Arc<RouteHandler>
+    share: Arc<RouteHandler>,
+    next_worker: usize
 }
 
 #[allow(dead_code)]
@@ -21,17 +22,20 @@ impl Manager {
             amount: 1,
             workers: Vec::new(),
             tx: Vec::new(),
-            share: Arc::new(RouteHandler::new())
+            share: Arc::new(RouteHandler::new()),
+            next_worker: 0
         }
     }
 
     pub fn set_thread_count(&mut self, amount: u32) {
-        self.amount = amount;
+        if amount > 0 {
+            self.amount = amount as usize;
+        }
     }
 
     pub fn boot(&mut self, router: RouteHandler) {
         self.share = Arc::new(router);
-        for _i in  1..self.amount {
+        for _ in  0..self.amount {
             let (tx, rx) = mpsc::channel();
             let route_access = self.share.clone();
             let handle = thread::spawn(move || {
@@ -45,7 +49,14 @@ impl Manager {
     }
 
     pub fn pass_stream(&mut self, mut stream: TcpStream) {
-
+        if self.next_worker >= self.amount {
+            self.next_worker = 0;
+        }
+        match self.tx.get(self.next_worker) {
+            Some(t) => t.send(stream).unwrap(),
+            None => {}
+        }
+        self.next_worker += 1;
     }
 
     fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>) {
@@ -56,7 +67,6 @@ impl Manager {
         if let Some(val) = req {
             let handle = router.get_route(val.get_method(),
                                         val.get_route());
-
             res = match handle {
                 Some(func) => func(val),
                 None => {

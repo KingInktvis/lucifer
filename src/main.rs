@@ -36,7 +36,6 @@ use std::sync::Arc;
 
 #[allow(dead_code)]
 pub struct Server {
-    routes: RouteHandler,
     manager: Manager
 }
 
@@ -44,17 +43,12 @@ pub struct Server {
 impl Server {
     fn new() -> Server {
         Server {
-            routes: RouteHandler::new(),
             manager: Manager::new()
         }
     }
 
-    pub fn add_route(&mut self, method: Method, route: &str, function: fn (Request) -> Response) {
-        self.routes.add_route(method, route, function);
-    }
-
-    fn get_route(&self, method: Method, route: &str) -> Option<fn (Request) -> Response> {
-        self.routes.get_route(method, route)
+    fn set_thread_count(&mut self, count: u32) {
+        self.manager.set_thread_count = count;
     }
 
     fn listen(&mut self, address: &str, routes: RouteHandler) {
@@ -67,25 +61,5 @@ impl Server {
             }
         }
     }
-
-
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn method_routes() {
-        let mut server = Server::new();
-        server.add_route(Method::GET, "/some", test);
-        match server.get_route(Method::GET, "/some") {
-            Some(_) => {},
-            None => panic!("Server routing error")
-        }
-    }
-
-    fn test (_req: Request) -> Response {
-        Response::new()
-    }
-}
