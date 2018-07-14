@@ -12,7 +12,7 @@ fn main() {
     server.listen("127.0.0.1:8000", routes);
 }
 
-fn root(_req: Request) -> Response {
+fn root(_req: Request, args: Args) -> Response {
     let mut res = Response::new();
     res.send_message(" <!DOCTYPE html>
 <html>
@@ -32,7 +32,6 @@ fn root(_req: Request) -> Response {
 
 use router::*;
 use handler::Manager;
-use std::sync::Arc;
 
 #[allow(dead_code)]
 pub struct Server {
@@ -48,7 +47,7 @@ impl Server {
     }
 
     fn set_thread_count(&mut self, count: u32) {
-        self.manager.set_thread_count = count;
+        self.manager.set_thread_count(count);
     }
 
     fn listen(&mut self, address: &str, routes: RouteHandler) {

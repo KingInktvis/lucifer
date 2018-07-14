@@ -48,7 +48,7 @@ impl Manager {
         }
     }
 
-    pub fn pass_stream(&mut self, mut stream: TcpStream) {
+    pub fn pass_stream(&mut self, stream: TcpStream) {
         if self.next_worker >= self.amount {
             self.next_worker = 0;
         }
@@ -68,7 +68,7 @@ impl Manager {
             let handle = router.get_route(val.get_method(),
                                         val.get_route());
             res = match handle {
-                Some(func) => func(val),
+                Some((func, args)) => func(val, args),
                 None => {
                     let mut tmp = Response::new();
                     tmp.set_status(404);
