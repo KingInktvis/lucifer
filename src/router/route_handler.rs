@@ -1,6 +1,5 @@
 use super::*;
 use http::*;
-use std::collections::HashMap;
 
 impl RouteHandler {
     pub fn new() -> RouteHandler {
@@ -22,8 +21,11 @@ impl RouteHandler {
     }
 
     pub fn get_route(&self, method: Method, route: &str) -> Option<(fn (Request, Args) -> Response, Args)> {
-        let mut arguments: Args = HashMap::new();
         self.method_match(method).router(route)
+    }
+
+    pub fn get_route_existing_args(&self, method: Method, route: &str, args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
+        self.method_match(method).router_with_args(route, args)
     }
 
     fn method_match(&self, method: Method) -> &Paths {

@@ -82,8 +82,12 @@ impl Paths {
     }
 
     pub fn router(&self, path: &str) -> Option<(fn (Request, Args) -> Response, Args)> {
-        let v = Paths::route_vec(path);
         let mut args = HashMap::new();
+        self.router_with_args(path, args)
+    }
+
+    pub fn router_with_args(&self, path: &str, mut args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
+        let v = Paths::route_vec(path);
         match self.vec_router(&v[1..], &mut args){
             Some(f) => Some((f, args)),
             None => None

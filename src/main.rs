@@ -4,15 +4,18 @@ use http::*;
 mod http;
 mod router;
 mod handler;
+mod middleware;
 
 fn main() {
     let mut server = Server::new();
     let mut routes = RouteHandler::new();
+    let mut middleware = middleware::MiddlewareStore::new();
+    middleware.add(Box::new(MW{}));
     routes.add_route(Method::GET, "/", root);
-    server.listen("127.0.0.1:8000", routes);
+    server.listen("127.0.0.1:8000", routes, middleware);
 }
 
-fn root(_req: Request, args: Args) -> Response {
+fn root(_req: Request, _args: Args) -> Response {
     let mut res = Response::new();
     res.send_message(" <!DOCTYPE html>
 <html>
@@ -29,9 +32,17 @@ fn root(_req: Request, args: Args) -> Response {
     res
 }
 
+struct MW {}
+impl middleware::Middleware for MW {
+    fn call(&self, req: Request, args: Args, handle: &mut middleware::MiddlewareHandle) -> Response {
+        handle.next(req, args)
+    }
+}
+
 
 use router::*;
 use handler::Manager;
+use middleware::*;
 
 #[allow(dead_code)]
 pub struct Server {
@@ -50,9 +61,9 @@ impl Server {
         self.manager.set_thread_count(count);
     }
 
-    fn listen(&mut self, address: &str, routes: RouteHandler) {
+    fn listen(&mut self, address: &str, routes: RouteHandler, middleware: MiddlewareStore) {
         let listener = TcpListener::bind(address).unwrap();
-        self.manager.boot(routes);
+        self.manager.boot(routes, middleware);
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => self.manager.pass_stream(stream),

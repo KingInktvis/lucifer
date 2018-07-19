@@ -6,12 +6,15 @@ use std::net:: TcpStream;
 use std::io::Write;
 use std::io::prelude::*;
 use std::sync::Arc;
+use middleware::*;
+use std::collections::HashMap;
 
 pub struct Manager {
     amount: usize,
     workers: Vec<thread::JoinHandle<()>>,
     tx: Vec<mpsc::Sender<TcpStream>>,
     share: Arc<RouteHandler>,
+    middleware: Arc<MiddlewareStore>,
     next_worker: usize
 }
 
@@ -23,6 +26,7 @@ impl Manager {
             workers: Vec::new(),
             tx: Vec::new(),
             share: Arc::new(RouteHandler::new()),
+            middleware: Arc::new(MiddlewareStore::new()),
             next_worker: 0
         }
     }
@@ -33,14 +37,18 @@ impl Manager {
         }
     }
 
-    pub fn boot(&mut self, router: RouteHandler) {
+    pub fn boot(&mut self, router: RouteHandler, middleware: MiddlewareStore) {
         self.share = Arc::new(router);
+        self.middleware = Arc::new(middleware);
+
         for _ in  0..self.amount {
             let (tx, rx) = mpsc::channel();
             let route_access = self.share.clone();
+            let middleware_store = self.middleware.clone();
+
             let handle = thread::spawn(move || {
                 for mess in rx {
-                    Manager::handle_stream(mess, &route_access);
+                    Manager::handle_stream(mess, &route_access, &middleware_store);
                 }
             });
             self.workers.push(handle);
@@ -59,22 +67,13 @@ impl Manager {
         self.next_worker += 1;
     }
 
-    fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>) {
+    fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
         let req = Request::new(&mut buffer);
         let res;
         if let Some(val) = req {
-            let handle = router.get_route(val.get_method(),
-                                        val.get_route());
-            res = match handle {
-                Some((func, args)) => func(val, args),
-                None => {
-                    let mut tmp = Response::new();
-                    tmp.set_status(404);
-                    tmp
-                }
-            }
+            res = Manager::middleware_route_call(val, router, middleware);
         }else {
             let mut tmp = Response::new();
             tmp.set_status(404);
@@ -85,10 +84,20 @@ impl Manager {
         stream.flush().unwrap();
     }
 
-    fn shutdown(&mut self) {
-        self.tx.clear();
-        for handle in self.workers.pop() {
-            handle.join();
-        }
+    fn middleware_route_call(req: Request, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) -> Response {
+        let func = |req: Request, args: Args| {
+            let handle = router.get_route(req.get_method(),
+                                          req.get_route());
+            match handle {
+                Some((func, args)) => func(req, args),
+                None => {
+                    let mut tmp = Response::new();
+                    tmp.set_status(404);
+                    tmp
+                }
+            }
+        };
+        let mut mw = middleware.get_handle(&func);
+        mw.next(req, HashMap::new())
     }
 }
