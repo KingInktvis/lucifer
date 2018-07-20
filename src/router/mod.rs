@@ -11,7 +11,8 @@ pub struct Paths {
     name: String,
     function: Option<fn (Request, Args) -> Response>,
     sub: Vec<Paths>,
-    wildcard: Vec<Paths>
+    variables: Vec<Paths>,
+    wildcard: bool
 }
 
 pub struct RouteHandler {

@@ -11,7 +11,8 @@ impl Paths {
             name: String::from(""),
             function: None,
             sub: Vec::new(),
-            wildcard: Vec::new()
+            variables: Vec::new(),
+            wildcard: false
         }
     }
 
@@ -23,8 +24,11 @@ impl Paths {
     fn add_route(&mut self, route: &[&str], func: fn (Request, Args) -> Response) {
         if route.len() > 0 {
             if let Some(c) = route[0].chars().next() {
-                if c == ':' {
-                    Paths::add_route_to_vec(route, &mut self.wildcard, func);
+                if c == '*' {
+                    self.function = Some(func);
+                    self.wildcard = true;
+                } else if c == ':' {
+                    Paths::add_route_to_vec(route, &mut self.variables, func);
                 }else {
                     Paths::add_route_to_vec(route, &mut self.sub, func);
                 }
@@ -47,7 +51,8 @@ impl Paths {
             name: String::from(route[0]),
             function: None,
             sub: Vec::new(),
-            wildcard: Vec::new()
+            variables: Vec::new(),
+            wildcard: false
         });
         let i = store.len() - 1;
         let item = &mut store[i];
@@ -82,7 +87,7 @@ impl Paths {
     }
 
     pub fn router(&self, path: &str) -> Option<(fn (Request, Args) -> Response, Args)> {
-        let mut args = HashMap::new();
+        let args = HashMap::new();
         self.router_with_args(path, args)
     }
 
@@ -102,14 +107,26 @@ impl Paths {
                 return None;
             }
         }
+        if self.wildcard {
+            let mut tmp = String::new();
+            for i in route.iter() {
+                tmp.push('/');
+                tmp.push_str(i);
+            }
+            args.insert(String::from("*"), tmp);
+            return match self.function {
+                Some(f) => Some(f),
+                None => None
+            }
+        }
         match self.find_sub(route[0]) {
             Some(p) => return p.vec_router(&route[1..], args),
-            None => return self.route_wildcard(route, args)
+            None => return self.route_variable(route, args)
         }
     }
 
-    fn route_wildcard(&self, path: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
-        for i in self.wildcard.iter() {
+    fn route_variable(&self, path: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
+        for i in self.variables.iter() {
             let res = i.vec_router(&path[1..], args);
             match res {
                 Some(func) => {
@@ -179,19 +196,36 @@ mod tests {
     }
 
     #[test]
-    fn wildcard_routes() {
+    fn variable_routes() {
         let mut router = Paths::new_root();
-        router.new_route("/:wildcard/test", empty);
-        router.new_route("/test/:wildcard/test2", empty);
+        router.new_route("/:variables/test", empty);
+        router.new_route("/test/:variables/test2", empty);
         let test = router.router("/test/random/test2");
         match test {
             Some((_func, args)) => {
-                match args.get(":wildcard") {
+                match args.get(":variables") {
                     Some(s) => assert_eq!(s, "random"),
+                    None => panic!("Variable not found")
+                }
+            },
+            None => panic!("Router fn does not return Some with variables.")
+        }
+    }
+
+    #[test]
+    fn wildcard_routes() {
+        let mut router = Paths::new_root();
+        router.new_route("/test/*", empty);
+
+        let test = router.router("/test/random/test2");
+        match test {
+            Some((_func, args)) => {
+                match args.get("*") {
+                    Some(s) => assert_eq!(s, "/random/test2"),
                     None => panic!("Wildcard not found")
                 }
             },
-            None => panic!("Router fn does not return Some with wildcard.")
+            None => panic!("Router fn does not return Some with wildcard route.")
         }
     }
 
