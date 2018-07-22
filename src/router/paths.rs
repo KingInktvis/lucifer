@@ -59,6 +59,15 @@ impl Paths {
         item.add_route(&route[1..], func);
     }
 
+    ///Takes the URI and return a tuple (route Vec<&str>, query (name &str, value &str), fragment &str).
+    fn split_uri(uri: &str) -> (Vec<&str>, Vec<(&str, &str)>, &str) {
+        let (route, fragment) = Paths::route_fragment_str(uri);
+        let (route, query) = Paths::route_query_str(route);
+        let query = Paths::route_query_vec(query);
+        let route = Paths::route_vec(route);
+        (route, query, fragment)
+    }
+
     /// Split a given route str at the '/' into a vector of the different parts
     fn route_vec(route: &str) -> Vec<&str> {
         let mut list = Vec::new();
@@ -77,6 +86,52 @@ impl Paths {
         list
     }
 
+    fn route_query_str(route: &str) -> (&str, &str) {
+        for (index, character) in route.as_bytes().iter().enumerate().rev() {
+            if *character == b'?' {
+                let query = &route[index+1..];
+                let remaining_route = &route[index+1..];
+                return (query, remaining_route);
+            }
+        }
+        (route, "")
+    }
+
+    fn route_query_vec(query: &str) -> Vec<(&str, &str)> {
+        let mut start = 0;
+        let mut query_vec = Vec::new();
+        for (index, character) in query.as_bytes().iter().enumerate() {
+            if *character == b'&' {
+                query_vec.push(&query[start..index]);
+                start = index + 1;
+            }
+        }
+        query_vec.push(&query[start..]);
+
+        let mut tuple_vec = Vec::new();
+        for arg in query_vec.iter() {
+            for (index, character) in arg.as_bytes().iter().enumerate() {
+                if *character == b'=' {
+                    let name = &arg[..index];
+                    let value = &arg[index+1..];
+                    tuple_vec.push((name, value));
+                }
+            }
+        }
+        tuple_vec
+    }
+
+    fn route_fragment_str(route: &str) -> (&str, &str) {
+        for (index, character) in route.as_bytes().iter().enumerate().rev() {
+            if *character == b'#' {
+                let fragment = &route[index+1..];
+                let cut_route = &route[..index];
+                return (cut_route, fragment);
+            }
+        }
+        (route, "")
+    }
+
     fn find_sub(&self, name: &str) -> Option<&Paths> {
         for item in self.sub.iter() {
             if *item.name == *name {
@@ -92,10 +147,20 @@ impl Paths {
     }
 
     pub fn router_with_args(&self, path: &str, mut args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
-        let v = Paths::route_vec(path);
-        match self.vec_router(&v[1..], &mut args){
+        let (route, query, fragment) = Paths::split_uri(path);
+        Paths::add_query_to_args(query, &mut args);
+        match self.vec_router(&route[1..], &mut args){
             Some(f) => Some((f, args)),
             None => None
+        }
+    }
+
+    fn add_query_to_args(query: Vec<(&str, &str)>, args: &mut Args) {
+        for (name, value) in query.iter() {
+            let mut new_name = String::from("?");
+            new_name.push_str(name);
+            let value = String::from(*value);
+            args.insert(new_name, value);
         }
     }
 
@@ -226,6 +291,40 @@ mod tests {
                 }
             },
             None => panic!("Router fn does not return Some with wildcard route.")
+        }
+    }
+
+    #[test]
+    fn fragment() {
+        let route = "/some/thing#fragment";
+        let (route, res) = Paths::route_fragment_str(route);
+        assert_eq!(res, "fragment");
+        assert_eq!(route, "/some/thing");
+    }
+
+    #[test]
+    fn query() {
+        let route = "/some?test=one";
+        let (_, query) = Paths::route_query_str(route);
+        assert_eq!(query, "test=one");
+        let res = Paths::route_query_vec(query);
+        assert_eq!(res, vec![("test", "one")]);
+
+        let route = "/some?test=one&testing=two&three=something";
+        let (_, query) = Paths::route_query_str(route);
+        assert_eq!(query, "test=one&testing=two&three=something");
+        let res = Paths::route_query_vec(query);
+        assert_eq!(res, vec![("test", "one"), ("testing", "two"), ("three", "something")]);
+    }
+
+    #[test]
+    fn add_query_to_args() {
+        let query = vec![("test", "one"), ("testing", "two"), ("three", "something")];
+        let mut args = HashMap::new();
+        Paths::add_query_to_args(query, &mut args);
+        match args.get("?testing") {
+            Some(value) => assert_eq!(value, "two"),
+            None => panic!("Query key not found.")
         }
     }
 
