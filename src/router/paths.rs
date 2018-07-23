@@ -18,7 +18,7 @@ impl Paths {
 
     pub fn new_route(&mut self, route: &str, func: fn (Request, Args) -> Response) {
         let split = Paths::route_vec(route);
-        self.add_route(&split[1..], func);
+        self.add_route(&split, func);
     }
 
     fn add_route(&mut self, route: &[&str], func: fn (Request, Args) -> Response) {
@@ -72,11 +72,16 @@ impl Paths {
     fn route_vec(route: &str) -> Vec<&str> {
         let mut list = Vec::new();
         let mut start = 0;
+        let mut first = true;
         for (i, c) in route.as_bytes().iter().enumerate() {
             if *c == b'/' {
-                let this = &route[start..i];
+                if first {
+                    first = false;
+                }else{
+                    let this = &route[start..i];
+                    list.push(this);
+                }
                 start = i + 1;
-                list.push(this);
             }
         }
         if route.len() > start {
@@ -90,8 +95,8 @@ impl Paths {
         for (index, character) in route.as_bytes().iter().enumerate().rev() {
             if *character == b'?' {
                 let query = &route[index+1..];
-                let remaining_route = &route[index+1..];
-                return (query, remaining_route);
+                let remaining_route = &route[..index];
+                return (remaining_route, query);
             }
         }
         (route, "")
@@ -149,7 +154,8 @@ impl Paths {
     pub fn router_with_args(&self, path: &str, mut args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
         let (route, query, fragment) = Paths::split_uri(path);
         Paths::add_query_to_args(query, &mut args);
-        match self.vec_router(&route[1..], &mut args){
+        args.insert(String::from("#"), String::from(fragment));
+        match self.vec_router(&route, &mut args){
             Some(f) => Some((f, args)),
             None => None
         }
@@ -214,16 +220,16 @@ mod tests {
     fn route_vec() {
         let route = "/some/thing";
         let v = Paths::route_vec(route);
-        assert_eq!(v.len(), 3);
-        assert_eq!(v[0], "");
-        assert_eq!(v[1], "some");
-        assert_eq!(v[2], "thing");
+        assert_eq!(v.len(), 2);
+//        assert_eq!(v[0], "");
+        assert_eq!(v[0], "some");
+        assert_eq!(v[1], "thing");
 
 
         let route = "/";
         let v = Paths::route_vec(route);
-        assert_eq!(v.len(), 1);
-        assert_eq!(v[0], "");
+        assert_eq!(v.len(), 0);
+//        assert_eq!(v[0], "");
     }
 
     #[test]
@@ -326,6 +332,15 @@ mod tests {
             Some(value) => assert_eq!(value, "two"),
             None => panic!("Query key not found.")
         }
+    }
+
+    #[test]
+    fn split_uri() {
+        let uri = "/some?name=test#frag";
+        let (route, query, fragment) = Paths::split_uri(uri);
+        assert_eq!(query, vec![("name", "test")]);
+        assert_eq!(fragment, "frag");
+        assert_eq!(route, vec!["some"]);
     }
 
     fn empty(_req: Request, _args: Args) -> Response {
