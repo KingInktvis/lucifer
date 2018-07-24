@@ -20,11 +20,11 @@ impl RouteHandler {
         self.method_match_mut(method).new_route(route, function);
     }
 
-    pub fn get_route(&self, method: Method, route: &str) -> Option<(fn (Request, Args) -> Response, Args)> {
+    pub fn get_route(&self, method: Method, route: &str) -> (Option<fn (Request, Args) -> Response>, Args) {
         self.method_match(method).router(route)
     }
 
-    pub fn get_route_existing_args(&self, method: Method, route: &str, args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
+    pub fn get_route_existing_args(&self, method: Method, route: &str, args: Args) -> (Option<fn (Request, Args) -> Response>, Args) {
         self.method_match(method).router_with_args(route, args)
     }
 

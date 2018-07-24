@@ -7,7 +7,6 @@ use std::io::Write;
 use std::io::prelude::*;
 use std::sync::Arc;
 use middleware::*;
-use std::collections::HashMap;
 
 pub struct Manager {
     amount: usize,
@@ -85,19 +84,18 @@ impl Manager {
     }
 
     fn middleware_route_call(req: Request, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) -> Response {
-        let func = |req: Request, args: Args| {
-            let handle = router.get_route(req.get_method(),
-                                          req.get_route());
-            match handle {
-                Some((func, args)) => func(req, args),
-                None => {
-                    let mut tmp = Response::new();
-                    tmp.set_status(404);
-                    tmp
-                }
-            }
+        let (handle, args) = router.get_route(req.get_method(), req.get_route());
+        let func = match handle {
+            Some(f) => f,
+            None => Manager::route404
         };
         let mut mw = middleware.get_handle(&func);
-        mw.next(req, HashMap::new())
+        mw.next(req, args)
+    }
+
+    fn route404(_req: Request, _args: Args) -> Response {
+        let mut res = Response::new();
+        res.set_status(404);
+        res
     }
 }

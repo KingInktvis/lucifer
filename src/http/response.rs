@@ -23,6 +23,10 @@ impl Response {
         self
     }
 
+    pub fn get_status(&self) -> u32 {
+        self.status
+    }
+
     pub fn add_header(&mut self, header: String) {
         self.fields.push(header);
     }

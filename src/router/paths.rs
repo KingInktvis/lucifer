@@ -146,18 +146,18 @@ impl Paths {
         None
     }
 
-    pub fn router(&self, path: &str) -> Option<(fn (Request, Args) -> Response, Args)> {
+    pub fn router(&self, path: &str) -> (Option<fn (Request, Args) -> Response>, Args) {
         let args = HashMap::new();
         self.router_with_args(path, args)
     }
 
-    pub fn router_with_args(&self, path: &str, mut args: Args) -> Option<(fn (Request, Args) -> Response, Args)> {
+    pub fn router_with_args(&self, path: &str, mut args: Args) -> (Option<fn (Request, Args) -> Response>, Args) {
         let (route, query, fragment) = Paths::split_uri(path);
         Paths::add_query_to_args(query, &mut args);
         args.insert(String::from("#"), String::from(fragment));
         match self.vec_router(&route, &mut args){
-            Some(f) => Some((f, args)),
-            None => None
+            Some(f) => (Some(f), args),
+            None => (None, args)
         }
     }
 
