@@ -16,17 +16,17 @@ pub struct Server {
 
 #[allow(dead_code)]
 impl Server {
-    fn new() -> Server {
+    pub fn new() -> Server {
         Server {
             manager: Manager::new()
         }
     }
 
-    fn set_thread_count(&mut self, count: u32) {
+    pub fn set_thread_count(&mut self, count: u32) {
         self.manager.set_thread_count(count);
     }
 
-    fn listen(&mut self, address: &str, routes: RouteHandler, middleware: MiddlewareStore) {
+    pub fn listen(&mut self, address: &str, routes: RouteHandler, middleware: MiddlewareStore) {
         let listener = TcpListener::bind(address).unwrap();
         self.manager.boot(routes, middleware);
         for stream in listener.incoming() {
