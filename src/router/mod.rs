@@ -5,6 +5,7 @@ use std::collections::HashMap;
 mod paths;
 mod route_handler;
 
+///An easy alias for the argument list to make function definitions easier to write.
 pub type Args = HashMap<String, String>;
 
 pub struct Paths {

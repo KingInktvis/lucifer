@@ -6,6 +6,7 @@ use router::Args;
 
 #[allow(dead_code)]
 impl Paths {
+    /// Creates a root node.
     pub fn new_root() -> Paths {
         Paths {
             name: String::from(""),
@@ -16,6 +17,7 @@ impl Paths {
         }
     }
 
+    ///Add a function to the to the given path.
     pub fn new_route(&mut self, route: &str, func: fn (Request, Args) -> Response) {
         let split = Paths::route_vec(route);
         self.add_route(&split, func);
@@ -146,11 +148,14 @@ impl Paths {
         None
     }
 
+    ///Search and return a tuple with Some(function) if the route exists (else None) and returns the arguments present in the route.
     pub fn router(&self, path: &str) -> (Option<fn (Request, Args) -> Response>, Args) {
         let args = HashMap::new();
         self.router_with_args(path, args)
     }
 
+    ///Search and return a tuple with Some(function) if the route exists (else None) and returns the arguments present in the route.
+    /// Takes the route &str and preexisting argument list to use.
     pub fn router_with_args(&self, path: &str, mut args: Args) -> (Option<fn (Request, Args) -> Response>, Args) {
         let (route, query, fragment) = Paths::split_uri(path);
         Paths::add_query_to_args(query, &mut args);

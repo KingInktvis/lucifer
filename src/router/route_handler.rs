@@ -16,14 +16,17 @@ impl RouteHandler {
         }
     }
 
+    ///Add a function to be returned on a given path and method.
     pub fn add_route(&mut self, method: Method, route: &str, function: fn (Request, Args) -> Response) {
         self.method_match_mut(method).new_route(route, function);
     }
 
+    ///Returns a function if present for the given route and method.
     pub fn get_route(&self, method: Method, route: &str) -> (Option<fn (Request, Args) -> Response>, Args) {
         self.method_match(method).router(route)
     }
 
+    ///Returns a function if present for the given route and method and uses an existing argument list.
     pub fn get_route_existing_args(&self, method: Method, route: &str, args: Args) -> (Option<fn (Request, Args) -> Response>, Args) {
         self.method_match(method).router_with_args(route, args)
     }

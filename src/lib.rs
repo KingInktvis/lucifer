@@ -1,8 +1,12 @@
-
-mod http;
-mod router;
+//! # Lucifer
+//!
+//! Lucifer is a library for creating web servers.
+//! It contains its own http implementation routing and middleware.
+//!
+pub mod http;
+pub mod router;
+pub mod middleware;
 mod handler;
-mod middleware;
 
 use std::net::TcpListener;
 use router::*;
