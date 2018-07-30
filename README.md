@@ -1,4 +1,4 @@
-# Lucifer
+# lucifer
 Lucifer is a web server library.
 Lucifer comes with its own http implementation. 
 Furthermore it comes with routing and the possibility to add middleware.
@@ -30,6 +30,7 @@ fn main() {
 ```
 
 ## Routes ##
+#### Route handler ####
 Routes are handled by the RouteHandler. Routes can be added via the `add_route` method and the belonging function can be retrieved via the `get_route` method.
 
 For adding and retrieving routes all HTTP verbs can be used which are defined in the enum `http::Method`.
@@ -93,5 +94,11 @@ fn static_content(_req: Request, args: Args) -> Response {
     res
 }
 ```
-Warning
-that the above code is not safe and without input sensitization it can be abused to read unintended files on the system.
+Note that the above code is not safe and without input sensitization it can be abused to read unintended files on the system.
+
+### Query ###
+The router supports uri query's like `/path/to/page?name=ferret&colour=purple`. The function can get this information from the args in form of '?' followed by the query variable name.
+For the example uri this gives the variable key `?name` with the value `ferret` and the key `?colour` with the value `purple`.
+
+### Fragment ###
+Lastly the router also adds a given fragment to the args. The fragment is added with the key `#`.
