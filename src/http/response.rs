@@ -62,6 +62,8 @@ impl Response {
             push_str(&mut res, "\r\n");
         }
 
+        push_str(&mut res, "\r\n");
+
         for i in self.body.iter() {
             res.push(*i);
         }
