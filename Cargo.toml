@@ -2,5 +2,9 @@
 name = "lucifer"
 version = "0.1.0"
 authors = ["rik"]
+repository = "https://github.com/KingInktvis/lucifer"
+readme = "README.md"
+license = "MIT"
+description = "Web server library."
 
 [dependencies]
