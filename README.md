@@ -30,7 +30,7 @@ fn main() {
 ```
 
 ## Routes ##
-#### Route handler ####
+### Route handler ###
 Routes are handled by the RouteHandler. Routes can be added via the `add_route` method and the belonging function can be retrieved via the `get_route` method.
 
 For adding and retrieving routes all HTTP verbs can be used which are defined in the enum `http::Method`.
@@ -50,7 +50,7 @@ To add a variable part in the route start it the a ':' continued by the variable
 This value can in the function be retrieved from the args. In the args the variable name still constrains the ':' to make the origin of the variables clear.
 
 Besides single variables the remainder of a route can also be made variable. This can be done by using an '*' for the route, for example `/static/*`. This wil call the same function for every routes requested that starts with `/static/` and the remainder of the uri can be retrieved from the args with `args.get("*")`.
-### Example of the static route ###
+#### Example of the static route ####
 In this example the `/static/` route will serve files requested or return a 404 error.
 ```rust
 extern crate lucifer;
@@ -102,3 +102,30 @@ For the example uri this gives the variable key `?name` with the value `ferret` 
 
 ### Fragment ###
 Lastly the router also adds a given fragment to the args. The fragment is added with the key `#`.
+
+## Middleware ##
+To use middleware in the application the middleware has to be added to a instance of `middlware::MiddlewareStore` which you pass to `Server.listen()` as third argument.
+
+### Creating middleware ###
+To make middleware for lucifer the middleware needs to implement the traits `middleware::Middleware`, `Sync` and `Send`.
+The Middleware trait requires the method call to be implemented with the following signature.
+```rust
+fn call(&self, req: Request, args: Args, handle: &mut MiddlewareHandle) -> Response
+```
+The middleware can access the same arguments that will be passed down to the function on the requested route.
+The difference between the middleware call and the route function is the extra argument MiddlewareHandle. This handle has a function named next which has to be called to continue executing the remaining middleware and the route specific function.
+A empty middleware that does nothing but pass on the request looks like the following.
+```rust
+extern crate lucifer;
+
+use lucifer::middleware::*;
+
+pub struct Nothing {}
+
+impl lucifer::middleware::Middleware for Nothing {
+    fn call(&self, req: Request, args: Args, handle: &mut MiddlewareHandle) -> Response {
+        handle.next(req, args)
+    }
+}
+```
+To modify incoming parameters one can modify or replace the Request and Args. On the other hand for one that wants to modify the outgoing responses can catch the result of MiddlewareHandle.next() and modify or replace it. A third option is to never call handle.next() and instead create and return the middleware's own response.
