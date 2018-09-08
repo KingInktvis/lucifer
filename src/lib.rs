@@ -6,18 +6,35 @@
 pub mod http;
 pub mod router;
 pub mod middleware;
+mod handler;
 
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::sync::{mpsc, Arc};
 //use router::*;
 //use middleware::*;
-//use std::io;
+
+struct Worker {
+    thread: thread::JoinHandle<()>,
+    sender: mpsc::Sender<Orders>,
+    receiver: mpsc::Receiver<Status>,
+    available: bool
+}
 
 #[allow(dead_code)]
 pub struct Server {
     thread_count: u32,
-    connections: Vec<Option<TcpStream>>,
-    threads: Vec<thread::JoinHandle<()>>
+    threads: Vec<Worker>
+}
+
+enum Orders {
+    Request(TcpStream),
+    Quit
+}
+
+enum Status {
+    Ready,
+    Busy
 }
 
 #[allow(dead_code)]
@@ -25,14 +42,14 @@ impl Server {
     pub fn new() -> Server {
         Server {
             thread_count: 2,
-            connections: Vec::new(),
             threads: Vec::new()
         }
     }
 
     fn boot_threads(&mut self) {
-        for i in 0..self.thread_count {
-
+        for _ in 0..self.thread_count {
+            let worker = Server::create_worker();
+            self.threads.push(worker);
         }
     }
 
@@ -44,39 +61,53 @@ impl Server {
                 Ok(stream) => self.add_stream(stream),
                 Err(_) => print!("Error while unwrapping stream")
             }
-            self.check_connections();
         }
     }
 
     fn add_stream(&mut self, stream: TcpStream) {
-        for conn in self.connections.iter_mut() {
-            match *conn {
-                Some(_) => {},
-                None => {
-                    *conn = Some(stream);
-                    return
-                }
-            }
-        }
-        self.connections.push(Some(stream));
-    }
-
-    fn check_connections(&mut self) {
-        for option in self.connections.iter_mut() {
-            match option {
-                Some(conn) =>{
-                    let mut buf = [0; 8];
-                    let len = conn.peek(&mut buf);
-                    match len {
-                        Ok(l) => {
-//                            print!("{}\n", l);
-//                            print!("{}", String::from_utf8_lossy(&buf[0..l]));
-                        },
-                        Err(_) => {}
+        for worker in self.threads.iter_mut() {
+            let resp = worker.receiver.try_recv();
+            match resp {
+                Ok(resp) => {
+                    use Status::*;
+                    match resp {
+                        Ready => worker.available = true,
+                        Busy => worker.available = false
                     }
                 },
-                None => {}
+                Err(mpsc::TryRecvError::Empty) => {},
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    *worker = Server::create_worker();
+                }
             }
+            if worker.available {
+                worker.sender.send(Orders::Request(stream));
+                worker.available = false;
+                break;
+            }
+        }
+    }
+
+    fn create_worker() -> Worker {
+        let (tx_commands, rx_commands) = mpsc::channel();
+        let (tx_status, rx_status) = mpsc::channel();
+        let handle = thread::spawn(move || {
+            for mes in rx_commands {
+                match mes {
+                    Orders::Request(stream) => {
+                        handler::handle_stream(stream);
+                    },
+                    Orders::Quit => {
+                        break;
+                    }
+                }
+            }
+        });
+        Worker {
+            available: true,
+            thread: handle,
+            sender: tx_commands,
+            receiver: rx_status
         }
     }
 }
