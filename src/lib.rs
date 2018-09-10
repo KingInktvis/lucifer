@@ -23,7 +23,8 @@ struct Worker {
 
 #[allow(dead_code)]
 pub struct Server {
-    thread_count: u32,
+    thread_min: u32,
+    thread_max: u32,
     threads: Vec<Worker>
 }
 
@@ -41,13 +42,14 @@ enum Status {
 impl Server {
     pub fn new() -> Server {
         Server {
-            thread_count: 2,
+            thread_min: 1,
+            thread_max: 8,
             threads: Vec::new()
         }
     }
 
     fn boot_threads(&mut self) {
-        for _ in 0..self.thread_count {
+        for _ in 0..self.thread_min {
             let worker = Server::create_worker();
             self.threads.push(worker);
         }
@@ -83,9 +85,12 @@ impl Server {
             if worker.available {
                 worker.sender.send(Orders::Request(stream));
                 worker.available = false;
-                break;
+                return;
             }
         }
+        let mut worker = Server::create_worker();
+        worker.sender.send(Orders::Request(stream));
+        self.threads.push(worker);
     }
 
     fn create_worker() -> Worker {
