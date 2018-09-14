@@ -8,16 +8,13 @@ use std::sync::{Arc, Mutex, mpsc};
 use middleware::*;
 
 #[allow(dead_code)]
-pub fn handle_stream(mut stream: TcpStream) {//, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>
-
-
+pub fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) {
     let mut buffer = [0; 512];
     stream.read(&mut buffer).unwrap();
     let req = Request::new(&mut buffer);
     let res;
     if let Some(val) = req {
-        res = Response::new();
-//            Manager::middleware_route_call(val, router, middleware);
+        res = middleware_route_call(val, router, middleware);
     }else {
         let mut tmp = Response::new();
         tmp.set_status(404);
@@ -26,7 +23,6 @@ pub fn handle_stream(mut stream: TcpStream) {//, router: &Arc<RouteHandler>, mid
 
     stream.write(&res.to_bytes()[..]).unwrap();
     stream.flush().unwrap();
-
 }
 
 fn middleware_route_call(req: Request, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) -> Response {
