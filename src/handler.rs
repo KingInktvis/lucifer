@@ -1,28 +1,28 @@
-use std::thread;
 use router::*;
 use http::{Request, Response};
 use std::net:: TcpStream;
 use std::io::Write;
 use std::io::prelude::*;
-use std::sync::{Arc, Mutex, mpsc};
+use std::sync::Arc;
 use middleware::*;
 
 #[allow(dead_code)]
 pub fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) {
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer).unwrap();
-    let req = Request::new(&mut buffer);
-    let res;
-    if let Some(val) = req {
-        res = middleware_route_call(val, router, middleware);
-    }else {
-        let mut tmp = Response::new();
-        tmp.set_status(404);
-        res = tmp;
-    }
+    let mut buffer = read_buffer(&mut stream);
+    if let Some(mut buffer) = buffer {
+        let req = Request::new(&mut buffer);
+        let res;
+        if let Some(val) = req {
+            res = middleware_route_call(val, router, middleware);
+        }else {
+            let mut tmp = Response::new();
+            tmp.set_status(404);
+            res = tmp;
+        }
 
-    stream.write(&res.to_bytes()[..]).unwrap();
-    stream.flush().unwrap();
+        stream.write(&res.to_bytes()[..]).unwrap();
+        stream.flush().unwrap();
+    }
 }
 
 fn middleware_route_call(req: Request, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) -> Response {
@@ -39,4 +39,33 @@ fn route404(_req: Request, _args: Args) -> Response {
     let mut res = Response::new();
     res.set_status(404);
     res
+}
+
+fn extend_vec(vector: &mut Vec<u8>) {
+    for _ in 0..512 {
+        vector.push(0);
+    }
+}
+
+fn read_buffer(stream: &mut TcpStream) -> Option<Vec<u8>> {
+    let size = 1024;
+    let mut buffer = vec![0; size];
+    for i in 0..32 {
+        let start = i * size;
+        let end = (i + 1) * size;
+        let len_res = stream.read(&mut buffer[start..end]);
+        match len_res {
+            Ok(len) => {
+                if len == size {
+                    extend_vec(&mut buffer);
+                }else {
+                    break;
+                }
+            },
+            Err(_) => {
+                return None;
+            }
+        }
+    }
+    Some(buffer)
 }

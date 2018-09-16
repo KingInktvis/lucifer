@@ -97,7 +97,7 @@ impl Server {
                     }
                 }
                 if worker.available {
-                    let r = worker.sender.send(Orders::Request(stream));
+                    worker.sender.send(Orders::Request(stream));
                     worker.available = false;
                     return;
                 }
@@ -118,6 +118,11 @@ impl Server {
                 match mes {
                     Orders::Request(stream) => {
                         handler::handle_stream(stream, &routes, &middleware);
+                        let res = tx_status.send(Status::Ready);
+                        match res {
+                            Ok(_) => {},
+                            Err(_) => {break;}
+                        }
                     },
                     Orders::Quit => {
                         break;
