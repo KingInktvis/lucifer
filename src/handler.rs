@@ -4,24 +4,32 @@ use std::net:: TcpStream;
 use std::io::Write;
 use std::io::prelude::*;
 use std::sync::Arc;
+use std::time::Duration;
 use middleware::*;
 
 #[allow(dead_code)]
 pub fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) {
-    let mut buffer = read_buffer(&mut stream);
-    if let Some(mut buffer) = buffer {
-        let req = Request::new(&mut buffer);
-        let res;
-        if let Some(val) = req {
-            res = middleware_route_call(val, router, middleware);
-        }else {
-            let mut tmp = Response::new();
-            tmp.set_status(404);
-            res = tmp;
+    stream.set_read_timeout(Some(Duration::new(1, 0)));
+    loop {
+        let mut buffer = read_buffer(&mut stream);
+        match buffer {
+            Some(mut buffer) => {
+                let req = Request::new(&mut buffer);
+                let res;
+                if let Some(val) = req {
+                    res = middleware_route_call(val, router, middleware);
+                }else {
+                    let mut tmp = Response::new();
+                    tmp.set_status(404);
+                    res = tmp;
+                }
+                stream.write(&res.to_bytes()[..]).unwrap();
+                stream.flush().unwrap();
+            },
+            None => {
+                break;
+            }
         }
-
-        stream.write(&res.to_bytes()[..]).unwrap();
-        stream.flush().unwrap();
     }
 }
 
@@ -59,6 +67,9 @@ fn read_buffer(stream: &mut TcpStream) -> Option<Vec<u8>> {
                 if len == size {
                     extend_vec(&mut buffer);
                 }else {
+                    if len == 0 && i == 0 {
+                        return None;
+                    }
                     break;
                 }
             },
