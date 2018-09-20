@@ -19,14 +19,14 @@ pub enum Method {
 
 #[allow(dead_code)]
 pub struct Request {
-    method: Method,
-    target: String,
-    options: HashMap<String, String>,
-    body: Vec<u8>
+    pub method: Method,
+    pub target: String,
+    pub options: HashMap<String, String>,
+    pub body: Vec<u8>
 }
 
 pub struct Response {
-    status: u32,
-    fields: Vec<String>,
-    body: Vec<u8>
+    pub status: u32,
+    pub fields: Vec<String>,
+    pub body: Vec<u8>
 }
