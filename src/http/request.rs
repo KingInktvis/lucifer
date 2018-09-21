@@ -81,7 +81,7 @@ impl Request {
             let space2 = sub.find(' ');
 
             if let Some(end) = space2 {
-                target = Some(String::from(&sub[..end])); 
+                target = Some(String::from(&sub[..end]));
             }
         }
         (method, target)
@@ -91,7 +91,7 @@ impl Request {
         let colon = line.find(':');
         if let Some(loc) = colon {
             let key = String::from(&line[..loc]);
-            let value = String::from(&line[loc + 1..]);
+            let value = String::from(&line[loc + 2..]);
             map.insert(key, value);
         }
     }
