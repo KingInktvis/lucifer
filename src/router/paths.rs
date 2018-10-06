@@ -71,7 +71,7 @@ impl Paths {
     }
 
     /// Split a given route str at the '/' into a vector of the different parts
-    fn route_vec(route: &str) -> Vec<&str> {
+    pub fn route_vec(route: &str) -> Vec<&str> {
         let mut list = Vec::new();
         let mut start = 0;
         let mut first = true;
@@ -175,7 +175,7 @@ impl Paths {
         }
     }
 
-    pub fn vec_router(&self, route: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
+    fn vec_router(&self, route: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
         if route.len() == 0 {
             if let Some(f) = &self.function {
                 return Some(*f);
