@@ -175,7 +175,7 @@ impl Paths {
         }
     }
 
-    fn vec_router(&self, route: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
+    pub fn vec_router(&self, route: &[&str], args: &mut Args) -> Option<fn (Request, Args) -> Response> {
         if route.len() == 0 {
             if let Some(f) = &self.function {
                 return Some(*f);
