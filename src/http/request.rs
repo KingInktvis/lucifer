@@ -92,7 +92,7 @@ impl Request {
         if let Some(loc) = colon {
             let key = String::from(&line[..loc]);
             let value = String::from(&line[loc + 2..]);
-            map.insert(key, value);
+            map.insert(key.to_lowercase(), value);
         }
     }
 
