@@ -62,6 +62,13 @@ impl Response {
             push_str(&mut res, "\r\n");
         }
 
+        //Content-Length header
+        if self.body.len() > 0 {
+            let mut header = String::from("Content-Length: ");
+            header.push_str(&self.body.len().to_string());
+            push_str(&mut res, &header);
+        }
+
         push_str(&mut res, "\r\n");
 
         for i in self.body.iter() {
