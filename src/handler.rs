@@ -9,7 +9,7 @@ use middleware::*;
 
 #[allow(dead_code)]
 pub fn handle_stream(mut stream: TcpStream, router: &Arc<RouteHandler>, middleware: &Arc<MiddlewareStore>) {
-    stream.set_read_timeout(Some(Duration::new(1, 0)));
+    stream.set_read_timeout(Some(Duration::new(5, 0)));
     loop {
         let mut buffer = read_buffer(&mut stream);
         match buffer {
@@ -49,27 +49,20 @@ fn route404(_req: Request, _args: Args) -> Response {
     res
 }
 
-fn extend_vec(vector: &mut Vec<u8>) {
-    for _ in 0..512 {
-        vector.push(0);
-    }
-}
-
 fn read_buffer(stream: &mut TcpStream) -> Option<Vec<u8>> {
-    let size = 1024;
-    let mut buffer = vec![0; size];
+    let size = 2048;
+    let mut buffer = Vec::new();
+    let mut first = true;
     for i in 0..32 {
-        let start = i * size;
-        let end = (i + 1) * size;
-        let len_res = stream.read(&mut buffer[start..end]);
+        let mut tmp = vec![0; size];
+        let len_res = stream.read(&mut tmp);
         match len_res {
             Ok(len) => {
-                if len == size {
-                    extend_vec(&mut buffer);
-                }else {
-                    if len == 0 && i == 0 {
-                        return None;
-                    }
+                if len == 0 && first {
+                    return None;
+                }
+                buffer.append(&mut tmp);
+                if len != size {
                     break;
                 }
             },

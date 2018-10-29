@@ -28,8 +28,8 @@ struct RouteContainer {
 
 #[allow(dead_code)]
 pub struct Server {
-    thread_min: usize,
-    thread_max: usize,
+    pub thread_min: usize,
+    pub thread_max: usize,
     threads: Vec<Worker>,
     container: Option<RouteContainer>
 }
