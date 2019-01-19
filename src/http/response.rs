@@ -1,4 +1,5 @@
 use super::Response;
+use http::ContentType;
 
 #[allow(dead_code)]
 impl Response {
@@ -6,6 +7,7 @@ impl Response {
         Response {
             status: 200,
             fields: Vec::new(),
+            content_type: ContentType::PLAIN,
             body: Vec::new()
         }
     }
@@ -63,10 +65,15 @@ impl Response {
         }
 
         //Content-Length header
+        let len = self.body.len();
         let mut header = String::from("Content-Length: ");
-        header.push_str(&self.body.len().to_string());
+        header.push_str(&len.to_string());
         header.push_str("\r\n");
         push_str(&mut res, &header);
+        if len > 0 {
+            push_str(&mut res, &self.content_type.to_header());
+            push_str(&mut res,"\r\n");
+        }
 
         push_str(&mut res, "\r\n");
 
